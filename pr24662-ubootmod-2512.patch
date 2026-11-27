@@ -1,0 +1,905 @@
+diff --git a/package/boot/uboot-mediatek/Makefile b/package/boot/uboot-mediatek/Makefile
+--- a/package/boot/uboot-mediatek/Makefile
++++ b/package/boot/uboot-mediatek/Makefile
+@@ -786,6 +786,18 @@ define U-Boot/mt7981_snr_snr-cpe-ax2
+   DEPENDS:=+trusted-firmware-a-mt7981-spim-nand-ddr3
+ endef
+ 
++define U-Boot/mt7981_tenbay_wr3000k
++  NAME:=Tenbay WR3000K
++  BUILD_SUBTARGET:=filogic
++  BUILD_DEVICES:=tenbay_wr3000k-ubootmod
++  UBOOT_CONFIG:=mt7981_tenbay_wr3000k
++  UBOOT_IMAGE:=u-boot.fip
++  BL2_BOOTDEV:=spim-nand
++  BL2_SOC:=mt7981
++  BL2_DDRTYPE:=ddr3-1866
++  DEPENDS:=+trusted-firmware-a-mt7981-spim-nand-ddr3-1866
++endef
++
+ define U-Boot/mt7981_teralink_tl3020-256mb
+   NAME:=Teralink TL3020 256mb
+   BUILD_SUBTARGET:=filogic
+@@ -1443,6 +1455,7 @@ UBOOT_TARGETS := \
+ 	mt7981_qihoo_360t7 \
+ 	mt7981_qihoo_360t7-ubi \
+ 	mt7981_snr_snr-cpe-ax2 \
++	mt7981_tenbay_wr3000k \
+ 	mt7981_teralink_tl3020-256mb \
+ 	mt7981_wavlink_wl-wnt100x3 \
+ 	mt7981_xiaomi_mi-router-ax3000t \
+diff --git a/package/boot/uboot-mediatek/patches/504-add-tenbay_wr3000k.patch b/package/boot/uboot-mediatek/patches/504-add-tenbay_wr3000k.patch
+new file mode 100644
+--- /dev/null
++++ b/package/boot/uboot-mediatek/patches/504-add-tenbay_wr3000k.patch
+@@ -0,0 +1,333 @@
++--- /dev/null
+++++ b/configs/mt7981_tenbay_wr3000k_defconfig
++@@ -0,0 +1,111 @@
+++CONFIG_ARM=y
+++CONFIG_ARM_SMCCC=y
+++CONFIG_SYS_HAS_NONCACHED_MEMORY=y
+++CONFIG_POSITION_INDEPENDENT=y
+++CONFIG_ARCH_MEDIATEK=y
+++CONFIG_TEXT_BASE=0x41e00000
+++CONFIG_SYS_MALLOC_F_LEN=0x4000
+++CONFIG_NR_DRAM_BANKS=1
+++CONFIG_DEFAULT_DEVICE_TREE="mt7981-tenbay-wr3000k"
+++CONFIG_OF_LIBFDT_OVERLAY=y
+++CONFIG_TARGET_MT7981=y
+++CONFIG_SYS_LOAD_ADDR=0x46000000
+++CONFIG_PRE_CON_BUF_ADDR=0x4007ef00
+++CONFIG_DEBUG_UART_BASE=0x11002000
+++CONFIG_DEBUG_UART_CLOCK=40000000
+++CONFIG_DEBUG_UART=y
+++CONFIG_FIT=y
+++CONFIG_BOOTDELAY=30
+++CONFIG_AUTOBOOT_KEYED=y
+++CONFIG_AUTOBOOT_MENU_SHOW=y
+++CONFIG_DEFAULT_FDT_FILE="mediatek/mt7981-tenbay-wr3000k.dtb"
+++CONFIG_LOGLEVEL=7
+++CONFIG_PRE_CONSOLE_BUFFER=y
+++CONFIG_LOG=y
+++# CONFIG_BOARD_INIT is not set
+++CONFIG_BOARD_LATE_INIT=y
+++CONFIG_HUSH_PARSER=y
+++CONFIG_SYS_PROMPT="MT7981> "
+++CONFIG_CMD_CPU=y
+++CONFIG_CMD_LICENSE=y
+++CONFIG_CMD_BOOTMENU=y
+++CONFIG_CMD_ASKENV=y
+++CONFIG_CMD_ERASEENV=y
+++CONFIG_CMD_ENV_FLAGS=y
+++CONFIG_CMD_STRINGS=y
+++CONFIG_CMD_DM=y
+++CONFIG_CMD_GPIO=y
+++CONFIG_CMD_GPT=y
+++CONFIG_CMD_MTD=y
+++CONFIG_CMD_PART=y
+++CONFIG_CMD_TFTPSRV=y
+++CONFIG_CMD_RARP=y
+++CONFIG_CMD_CDP=y
+++CONFIG_CMD_SNTP=y
+++CONFIG_CMD_LINK_LOCAL=y
+++CONFIG_CMD_DHCP=y
+++CONFIG_CMD_DNS=y
+++CONFIG_CMD_PING=y
+++CONFIG_CMD_PXE=y
+++CONFIG_CMD_CACHE=y
+++CONFIG_CMD_PSTORE=y
+++CONFIG_CMD_PSTORE_MEM_ADDR=0x42ff0000
+++CONFIG_CMD_UUID=y
+++CONFIG_CMD_HASH=y
+++CONFIG_CMD_SMC=y
+++CONFIG_CMD_UBI=y
+++CONFIG_CMD_UBI_RENAME=y
+++CONFIG_OF_EMBED=y
+++CONFIG_ENV_OVERWRITE=y
+++CONFIG_ENV_IS_IN_UBI=y
+++CONFIG_ENV_REDUNDANT=y
+++CONFIG_ENV_UBI_PART="ubi"
+++CONFIG_ENV_UBI_VOLUME="ubootenv"
+++CONFIG_ENV_UBI_VOLUME_REDUND="ubootenv2"
+++CONFIG_ENV_RELOC_GD_ENV_ADDR=y
+++CONFIG_ENV_USE_DEFAULT_ENV_TEXT_FILE=y
+++CONFIG_ENV_DEFAULT_ENV_TEXT_FILE="defenvs/tenbay_wr3000k_env"
+++CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG=y
+++CONFIG_VERSION_VARIABLE=y
+++CONFIG_NETCONSOLE=y
+++CONFIG_USE_IPADDR=y
+++CONFIG_IPADDR="192.168.1.1"
+++CONFIG_USE_SERVERIP=y
+++CONFIG_SERVERIP="192.168.1.254"
+++CONFIG_NET_RANDOM_ETHADDR=y
+++CONFIG_BUTTON=y
+++CONFIG_BUTTON_GPIO=y
+++CONFIG_CLK=y
+++CONFIG_GPIO_HOG=y
+++CONFIG_LED=y
+++CONFIG_LED_BLINK=y
+++CONFIG_LED_GPIO=y
+++# CONFIG_MMC is not set
+++CONFIG_MTD=y
+++CONFIG_DM_MTD=y
+++CONFIG_MTD_SPI_NAND=y
+++CONFIG_MTD_UBI_FASTMAP=y
+++CONFIG_PHY_FIXED=y
+++CONFIG_MEDIATEK_ETH=y
+++CONFIG_PHY=y
+++CONFIG_PHY_MTK_TPHY=y
+++CONFIG_PINCTRL=y
+++CONFIG_PINCONF=y
+++CONFIG_PINCTRL_MT7981=y
+++CONFIG_POWER_DOMAIN=y
+++CONFIG_MTK_POWER_DOMAIN=y
+++CONFIG_DM_REGULATOR=y
+++CONFIG_DM_REGULATOR_FIXED=y
+++CONFIG_DM_REGULATOR_GPIO=y
+++CONFIG_RAM=y
+++CONFIG_DM_RNG=y
+++CONFIG_RNG_MTK_V2=y
+++CONFIG_CMD_RNG=y
+++CONFIG_DM_SERIAL=y
+++CONFIG_SERIAL_RX_BUFFER=y
+++CONFIG_MTK_SERIAL=y
+++CONFIG_SPI=y
+++CONFIG_DM_SPI=y
+++CONFIG_MTK_SPIM=y
+++CONFIG_ZSTD=y
+++CONFIG_HEXDUMP=y
++--- /dev/null
+++++ b/arch/arm/dts/mt7981-tenbay-wr3000k.dts
++@@ -0,0 +1,160 @@
+++// SPDX-License-Identifier: GPL-2.0
+++/*
+++ * Tenbay WR3000K - U-Boot device tree
+++ *
+++ * GPIOs match the Linux device tree
+++ * (mt7981b-tenbay-wr3000k-common.dtsi): pio 0 = wps button,
+++ * pio 1 = reset button, pio 10 = red status LED,
+++ * pio 11 = green status LED, pio 12 = blue status LED.
+++ */
+++
+++/dts-v1/;
+++#include "mt7981.dtsi"
+++#include <dt-bindings/gpio/gpio.h>
+++#include <dt-bindings/input/linux-event-codes.h>
+++
+++/ {
+++	#address-cells = <1>;
+++	#size-cells = <1>;
+++	model = "Tenbay WR3000K";
+++	compatible = "tenbay,wr3000k", "mediatek,mt7981";
+++
+++	chosen {
+++		stdout-path = &uart0;
+++		tick-timer = &timer0;
+++	};
+++
+++	memory@40000000 {
+++		device_type = "memory";
+++		reg = <0x40000000 0x20000000>;
+++	};
+++
+++	keys {
+++		compatible = "gpio-keys";
+++
+++		button-0 {
+++			label = "wps";
+++			linux,code = <KEY_WPS_BUTTON>;
+++			gpios = <&pio 0 GPIO_ACTIVE_LOW>;
+++		};
+++
+++		button-1 {
+++			label = "reset";
+++			linux,code = <KEY_RESTART>;
+++			gpios = <&pio 1 GPIO_ACTIVE_LOW>;
+++		};
+++	};
+++
+++	leds {
+++		compatible = "gpio-leds";
+++
+++		led-0 {
+++			label = "red:status";
+++			gpios = <&pio 10 GPIO_ACTIVE_LOW>;
+++		};
+++
+++		led-1 {
+++			label = "green:status";
+++			gpios = <&pio 11 GPIO_ACTIVE_LOW>;
+++		};
+++
+++		led-2 {
+++			label = "blue:status";
+++			gpios = <&pio 12 GPIO_ACTIVE_LOW>;
+++		};
+++	};
+++};
+++
+++&uart0 {
+++	status = "okay";
+++};
+++
+++&eth {
+++	status = "okay";
+++	mediatek,gmac-id = <0>;
+++	phy-mode = "2500base-x";
+++	mediatek,switch = "mt7531";
+++	reset-gpios = <&pio 39 GPIO_ACTIVE_HIGH>;
+++
+++	fixed-link {
+++		speed = <2500>;
+++		full-duplex;
+++	};
+++};
+++
+++&pio {
+++	spi_flash_pins: spi0-pins-func-1 {
+++		mux {
+++			function = "flash";
+++			groups = "spi0", "spi0_wp_hold";
+++		};
+++
+++		conf-pu {
+++			pins = "SPI0_CS", "SPI0_HOLD", "SPI0_WP";
+++			drive-strength = <MTK_DRIVE_8mA>;
+++			bias-pull-up = <MTK_PUPD_SET_R1R0_11>;
+++		};
+++
+++		conf-pd {
+++			pins = "SPI0_CLK", "SPI0_MOSI", "SPI0_MISO";
+++			drive-strength = <MTK_DRIVE_8mA>;
+++			bias-pull-down = <MTK_PUPD_SET_R1R0_11>;
+++		};
+++	};
+++};
+++
+++&spi0 {
+++	#address-cells = <1>;
+++	#size-cells = <0>;
+++	pinctrl-names = "default";
+++	pinctrl-0 = <&spi_flash_pins>;
+++	status = "okay";
+++	must_tx;
+++	enhance_timing;
+++	dma_ext;
+++	ipm_design;
+++	support_quad;
+++	tick_dly = <2>;
+++	sample_sel = <0>;
+++
+++	spi_nand@0 {
+++		compatible = "spi-nand";
+++		reg = <0>;
+++		spi-max-frequency = <52000000>;
+++
+++		partitions {
+++			compatible = "fixed-partitions";
+++			#address-cells = <1>;
+++			#size-cells = <1>;
+++
+++			partition@0 {
+++				label = "BL2";
+++				reg = <0x0 0x100000>;
+++			};
+++
+++			partition@100000 {
+++				label = "u-boot-env";
+++				reg = <0x100000 0x80000>;
+++			};
+++
+++			partition@180000 {
+++				label = "Factory";
+++				reg = <0x180000 0x200000>;
+++			};
+++
+++			partition@380000 {
+++				label = "FIP";
+++				reg = <0x380000 0x200000>;
+++			};
+++
+++			partition@580000 {
+++				label = "ubi";
+++				reg = <0x580000 0x7020000>;
+++			};
+++		};
+++	};
+++};
+++
+++&watchdog {
+++	status = "disabled";
+++};
++--- /dev/null
+++++ b/defenvs/tenbay_wr3000k_env
++@@ -0,0 +1,53 @@
+++ipaddr=192.168.1.1
+++serverip=192.168.1.254
+++loadaddr=0x46000000
+++console=earlycon=uart8250,mmio32,0x11002000 console=ttyS0
+++bootcmd=if pstore check ; then run boot_recovery ; else run boot_ubi ; fi
+++bootconf=config-1
+++bootdelay=0
+++bootfile=openwrt-mediatek-filogic-tenbay_wr3000k-ubootmod-initramfs-recovery.itb
+++bootfile_bl2=openwrt-mediatek-filogic-tenbay_wr3000k-ubootmod-preloader.bin
+++bootfile_fip=openwrt-mediatek-filogic-tenbay_wr3000k-ubootmod-bl31-uboot.fip
+++bootfile_upg=openwrt-mediatek-filogic-tenbay_wr3000k-ubootmod-squashfs-sysupgrade.itb
+++bootled_status=blue:status
+++bootmenu_confirm_return=askenv - Press ENTER to return to menu ; bootmenu 60
+++bootmenu_default=0
+++bootmenu_delay=0
+++bootmenu_title=      [0;34m( ( ( [1;39mOpenWrt[0;34m ) ) )
+++bootmenu_0=Initialize environment.=run _firstboot
+++bootmenu_0d=Run default boot command.=run boot_default
+++bootmenu_1=Boot system via TFTP.=run boot_tftp ; run bootmenu_confirm_return
+++bootmenu_2=Boot production system from NAND.=run boot_production ; run bootmenu_confirm_return
+++bootmenu_3=Boot recovery system from NAND.=run boot_recovery ; run bootmenu_confirm_return
+++bootmenu_4=Load production system via TFTP then write to NAND.=setenv noboot 1 ; setenv replacevol 1 ; run boot_tftp_production ; setenv noboot ; setenv replacevol ; run bootmenu_confirm_return
+++bootmenu_5=Load recovery system via TFTP then write to NAND.=setenv noboot 1 ; setenv replacevol 1 ; run boot_tftp_recovery ; setenv noboot ; setenv replacevol ; run bootmenu_confirm_return
+++bootmenu_6=[31mLoad BL31+U-Boot FIP via TFTP then write to NAND.[0m=run boot_tftp_write_fip ; run bootmenu_confirm_return
+++bootmenu_7=[31mLoad BL2 preloader via TFTP then write to NAND.[0m=run boot_tftp_write_bl2 ; run bootmenu_confirm_return
+++bootmenu_8=Reboot.=reset
+++bootmenu_9=Reset all settings to factory defaults.=run reset_factory ; reset
+++boot_first=if button reset ; then led $bootled_status on ; run boot_tftp_recovery ; setenv flag_recover 1 ; run boot_default ; fi ; bootmenu
+++boot_default=if env exists flag_recover ; then else run bootcmd ; fi ; run boot_recovery ; setenv replacevol 1 ; run boot_tftp_forever
+++boot_production=led $bootled_status on ; run ubi_read_production && bootm $loadaddr#$bootconf ; led $bootled_status off
+++boot_recovery=led $bootled_status on ; run ubi_read_recovery && bootm $loadaddr#$bootconf ; led $bootled_status off
+++boot_ubi=run boot_production ; run boot_recovery ; run boot_tftp_forever
+++boot_tftp_forever=led $bootled_status on ; while true ; do run boot_tftp_recovery ; sleep 1 ; done
+++boot_tftp_production=tftpboot $loadaddr $bootfile_upg && env exists replacevol && iminfo $loadaddr && run ubi_write_production ; if env exists noboot ; then else bootm $loadaddr#$bootconf ; fi
+++boot_tftp_recovery=tftpboot $loadaddr $bootfile && env exists replacevol && iminfo $loadaddr && run ubi_write_recovery ; if env exists noboot ; then else bootm $loadaddr#$bootconf ; fi
+++boot_tftp=tftpboot $loadaddr $bootfile && bootm $loadaddr#$bootconf
+++boot_tftp_write_fip=tftpboot $loadaddr $bootfile_fip && run mtd_write_fip && run reset_factory
+++boot_tftp_write_bl2=tftpboot $loadaddr $bootfile_bl2 && run mtd_write_bl2
+++reset_factory=ubi part ubi ; mw $loadaddr 0x0 0x800 ; ubi write $loadaddr ubootenv 0x800 ; ubi write $loadaddr ubootenv2 0x800
+++mtd_write_fip=mtd erase FIP && mtd write FIP $loadaddr
+++mtd_write_bl2=mtd erase BL2 && mtd write BL2 $loadaddr
+++ubi_create_env=ubi check ubootenv || ubi create ubootenv 0x1f000 dynamic || run ubi_format ; ubi check ubootenv2 || ubi create ubootenv2 0x1f000 dynamic || run ubi_format
+++ubi_format=ubi detach ; mtd erase ubi && ubi part ubi ; reset
+++ubi_prepare_rootfs=if ubi check rootfs_data ; then else if env exists rootfs_data_max ; then ubi create rootfs_data $rootfs_data_max dynamic || ubi create rootfs_data - dynamic ; else ubi create rootfs_data - dynamic ; fi ; fi
+++ubi_read_production=ubi read $loadaddr fit && iminfo $loadaddr && run ubi_prepare_rootfs
+++ubi_read_recovery=ubi check recovery && ubi read $loadaddr recovery
+++ubi_remove_rootfs=ubi check rootfs_data && ubi remove rootfs_data
+++ubi_write_production=ubi check fit && ubi remove fit ; run ubi_remove_rootfs ; ubi create fit $filesize dynamic && ubi write $loadaddr fit $filesize
+++ubi_write_recovery=ubi check recovery && ubi remove recovery ; run ubi_remove_rootfs ; ubi create recovery $filesize dynamic && ubi write $loadaddr recovery $filesize
+++_init_env=setenv _init_env ; run ubi_create_env ; saveenv ; saveenv
+++_firstboot=setenv _firstboot ; run _switch_to_menu ; run _init_env ; run boot_first
+++_switch_to_menu=setenv _switch_to_menu ; setenv bootdelay 3 ; setenv bootmenu_delay 3 ; setenv bootmenu_0 $bootmenu_0d ; setenv bootmenu_0d ; run _bootmenu_update_title
+++_bootmenu_update_title=setenv _bootmenu_update_title ; setenv bootmenu_title "$bootmenu_title       [33m$ver[0m"
+diff --git a/package/boot/uboot-mediatek/patches/505-mtd-spinand-detect-Wooposit-SGM7000I-by-ONFI.patch b/package/boot/uboot-mediatek/patches/505-mtd-spinand-detect-Wooposit-SGM7000I-by-ONFI.patch
+new file mode 100644
+--- /dev/null
++++ b/package/boot/uboot-mediatek/patches/505-mtd-spinand-detect-Wooposit-SGM7000I-by-ONFI.patch
+@@ -0,0 +1,189 @@
++From 833118a6ecc6fec2430b1e09d9ede6293fd1c0d1 Mon Sep 17 00:00:00 2001
++From: Murad Rabadanov <the21.21@mail.ru>
++Date: Sun, 22 Nov 2026 13:57:23 +0300
++Subject: [PATCH] mtd: spinand: detect Wooposit SGM7000I by its ONFI page
++
++Some WR3000K units return zeros for READ ID. Probe their ONFI
++parameter page after ID matching fails. Require the Wooposit model
++and vendor fields and a valid CRC before selecting the geometry.
++
++This part uses a three-byte cache address. Shift the column by eight
++bits for cache reads, including reads of the bad-block marker.
++
++Use explicit hex formatting in the failed READ ID log. The U-Boot
++printf implementation prints a pointer for the previous %*phN format.
++
++Link: https://github.com/openwrt/openwrt/issues/23842
++Assisted-by: OpenAI Codex
++Signed-off-by: Murad Rabadanov <the21.21@mail.ru>
++
++--- a/drivers/mtd/nand/spi/core.c
+++++ b/drivers/mtd/nand/spi/core.c
++@@ -35,6 +35,7 @@
++ #include <linux/bug.h>
++ #include <linux/mtd/casn.h>
++ #include <linux/mtd/spinand.h>
+++#include <memalign.h>
++ #include <linux/printk.h>
++ #include <linux/delay.h>
++ #endif
++@@ -434,6 +435,8 @@ static int spinand_load_page_op(struct s
++ 	return spi_mem_exec_op(spinand->slave, &op);
++ }
++ 
+++static const struct spinand_manufacturer wooposit_onfi_manufacturer;
+++
++ static int spinand_read_from_cache_op(struct spinand_device *spinand,
++ 				      const struct nand_page_io_req *req)
++ {
++@@ -472,7 +475,12 @@ static int spinand_read_from_cache_op(st
++ 		column |= req->pos.plane << fls(nanddev_page_size(nand));
++ 
++ 	while (nbytes) {
++-		ret = spi_mem_dirmap_read(rdesc, column, nbytes, buf);
+++		u32 address = column;
+++
+++		if (spinand->manufacturer == &wooposit_onfi_manufacturer)
+++			address <<= 8;
+++
+++		ret = spi_mem_dirmap_read(rdesc, address, nbytes, buf);
++ 		if (ret < 0)
++ 			return ret;
++ 
++@@ -2188,6 +2196,120 @@ static void spinand_dump_casn(struct spi
++ 		"---Dumping full CASN page ends here.---\n");
++ }
++ 
+++static SPINAND_OP_VARIANTS(wooposit_read_cache,
+++		SPI_MEM_OP(SPI_MEM_OP_CMD(0x03, 1),
+++			   SPI_MEM_OP_ADDR(3, 0, 1),
+++			   SPI_MEM_OP_NO_DUMMY,
+++			   SPI_MEM_OP_DATA_IN(0, NULL, 1)));
+++
+++static SPINAND_OP_VARIANTS(wooposit_write_cache,
+++		SPINAND_PROG_LOAD_1S_1S_1S_OP(true, 0, NULL, 0));
+++
+++static SPINAND_OP_VARIANTS(wooposit_update_cache,
+++		SPINAND_PROG_LOAD_1S_1S_1S_OP(false, 0, NULL, 0));
+++
+++static int wooposit_ooblayout_ecc(struct mtd_info *mtd, int section,
+++				 struct mtd_oob_region *region)
+++{
+++	return -ERANGE;
+++}
+++
+++static int wooposit_ooblayout_free(struct mtd_info *mtd, int section,
+++				  struct mtd_oob_region *region)
+++{
+++	if (section)
+++		return -ERANGE;
+++
+++	region->offset = 2;
+++	region->length = mtd->oobsize - 2;
+++	return 0;
+++}
+++
+++static const struct mtd_ooblayout_ops wooposit_onfi_ooblayout = {
+++	.ecc = wooposit_ooblayout_ecc,
+++	.rfree = wooposit_ooblayout_free,
+++};
+++
+++static const struct spinand_info wooposit_onfi_table[] = {
+++	SPINAND_INFO("SGM7000I-S24W4GH",
+++		     SPINAND_ID(SPINAND_READID_METHOD_OPCODE, 0x01),
+++		     NAND_MEMORG(1, 2048, 64, 64, 1024, 20, 1, 1, 1),
+++		     NAND_ECCREQ(8, 512),
+++		     SPINAND_INFO_OP_VARIANTS(&wooposit_read_cache,
+++					      &wooposit_write_cache,
+++					      &wooposit_update_cache),
+++		     0, SPINAND_ECCINFO(&wooposit_onfi_ooblayout, NULL)),
+++};
+++
+++static const struct spinand_manufacturer_ops wooposit_onfi_ops = {};
+++
+++static const struct spinand_manufacturer wooposit_onfi_manufacturer = {
+++	.id = 0xea,
+++	.name = "Wooposit",
+++	.chips = wooposit_onfi_table,
+++	.nchips = ARRAY_SIZE(wooposit_onfi_table),
+++	.ops = &wooposit_onfi_ops,
+++};
+++
+++static int spinand_wooposit_onfi_detect(struct spinand_device *spinand)
+++{
+++	struct nand_page_io_req request = { .pos.page = 1 };
+++	u8 prefix[3];
+++	u8 cfg, status;
+++	int ret, restore;
+++	ALLOC_CACHE_ALIGN_BUFFER(u8, raw, 256);
+++	struct spi_mem_op op = SPI_MEM_OP(SPI_MEM_OP_CMD(0x03, 1),
+++					  SPI_MEM_OP_ADDR(3, 0x300, 1),
+++					  SPI_MEM_OP_NO_DUMMY,
+++					  SPI_MEM_OP_DATA_IN(256, raw, 1));
+++
+++	ret = spinand_reset_op(spinand);
+++	if (ret)
+++		return ret;
+++
+++	ret = spinand_read_reg_op(spinand, REG_CFG, &cfg);
+++	if (ret)
+++		return ret;
+++
+++	ret = spinand_write_reg_op(spinand, REG_CFG, cfg | BIT(6));
+++	if (ret)
+++		return ret;
+++
+++	ret = spinand_load_page_op(spinand, &request);
+++	if (!ret)
+++		ret = spinand_wait(spinand, SPINAND_READ_INITIAL_DELAY_US,
+++				   SPINAND_READ_POLL_DELAY_US, &status);
+++	if (!ret)
+++		ret = spi_mem_exec_op(spinand->slave, &op);
+++
+++	restore = spinand_write_reg_op(spinand, REG_CFG, cfg);
+++	if (ret || restore)
+++		return ret ? ret : restore;
+++
+++	/* The cached parameter page wraps its first three bytes to the end. */
+++	if (memcmp(raw + 253, "ONF", 3) || raw[0] != 'I' ||
+++	    memcmp(raw + 29, "Wooposit", 8) ||
+++	    memcmp(raw + 41, "SGM7000I-S24W4GH", 16) || raw[61] != 0xea)
+++		return -ENODEV;
+++
+++	memcpy(prefix, raw + 253, sizeof(prefix));
+++	memmove(raw + sizeof(prefix), raw, 253);
+++	memcpy(raw, prefix, sizeof(prefix));
+++
+++	if (nanddev_crc16(0x4f4e, raw, 254) != (raw[254] | ((u16)raw[255] << 8)))
+++		return -EBADMSG;
+++
+++	spinand->id.data[0] = 0xea;
+++	spinand->id.data[1] = 0x01;
+++	ret = spinand_match_and_init(spinand, wooposit_onfi_table,
+++				     ARRAY_SIZE(wooposit_onfi_table),
+++				     SPINAND_READID_METHOD_OPCODE);
+++	if (!ret)
+++		spinand->manufacturer = &wooposit_onfi_manufacturer;
+++
+++	return ret;
+++}
+++
++ static int spinand_detect(struct spinand_device *spinand)
++ {
++ 	struct nand_device *nand = spinand_to_nand(spinand);
++@@ -2229,9 +2351,13 @@ static int spinand_detect(struct spinand
++ 		if (ret)
++ 			goto free_casn;
++ 		ret = spinand_id_detect(spinand);
+++		if (ret)
+++			ret = spinand_wooposit_onfi_detect(spinand);
++ 		if (ret) {
++-			dev_err(dev, "unknown raw ID %*phN\n", SPINAND_MAX_ID_LEN,
++-				spinand->id.data);
+++			dev_err(dev, "unknown raw ID %02x %02x %02x %02x %02x (error %d)\n",
+++				spinand->id.data[0], spinand->id.data[1],
+++				spinand->id.data[2], spinand->id.data[3],
+++				spinand->id.data[4], ret);
++ 			goto free_casn;
++ 		}
++ 	}
+diff --git a/target/linux/mediatek/dts/mt7981b-tenbay-wr3000k-common.dtsi b/target/linux/mediatek/dts/mt7981b-tenbay-wr3000k-common.dtsi
+new file mode 100644
+--- /dev/null
++++ b/target/linux/mediatek/dts/mt7981b-tenbay-wr3000k-common.dtsi
+@@ -0,0 +1,230 @@
++// SPDX-License-Identifier: (GPL-2.0 OR MIT)
++
++/dts-v1/;
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/input/input.h>
++#include <dt-bindings/leds/common.h>
++
++#include "mt7981b.dtsi"
++
++/ {
++	aliases {
++		led-boot = &led_run;
++		led-failsafe = &led_blue;
++		led-running = &led_green;
++		led-upgrade = &led_blue;
++		serial0 = &uart0;
++		label-mac-device = &wan;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++
++	gpio-keys {
++		compatible = "gpio-keys";
++
++		reset {
++			label = "reset";
++			linux,code = <KEY_RESTART>;
++			gpios = <&pio 1 GPIO_ACTIVE_LOW>;
++		};
++
++		wps {
++			label = "wps";
++			linux,code = <KEY_WPS_BUTTON>;
++			gpios = <&pio 0 GPIO_ACTIVE_LOW>;
++		};
++	};
++
++	leds {
++		compatible = "gpio-leds";
++
++		led_run: led-0 {
++			color = <LED_COLOR_ID_RED>;
++			function = LED_FUNCTION_STATUS;
++			gpios = <&pio 10 GPIO_ACTIVE_LOW>;
++		};
++
++		led_green: led-1 {
++			color = <LED_COLOR_ID_GREEN>;
++			function = LED_FUNCTION_STATUS;
++			gpios = <&pio 11 GPIO_ACTIVE_LOW>;
++		};
++
++		led_blue: led-2 {
++			color = <LED_COLOR_ID_BLUE>;
++			function = LED_FUNCTION_STATUS;
++			gpios = <&pio 12 GPIO_ACTIVE_LOW>;
++		};
++	};
++};
++
++&uart0 {
++	status = "okay";
++};
++
++&watchdog {
++	status = "okay";
++};
++
++&eth {
++	pinctrl-names = "default";
++	pinctrl-0 = <&mdio_pins>;
++	status = "okay";
++
++	gmac0: mac@0 {
++		compatible = "mediatek,eth-mac";
++		reg = <0>;
++		phy-mode = "2500base-x";
++		nvmem-cells = <&macaddr_factory_4 (-1)>;
++		nvmem-cell-names = "mac-address";
++
++		fixed-link {
++			speed = <2500>;
++			full-duplex;
++			pause;
++		};
++	};
++};
++
++&mdio_bus {
++	switch: switch@1f {
++		compatible = "mediatek,mt7531";
++		reg = <31>;
++		reset-gpios = <&pio 39 GPIO_ACTIVE_HIGH>;
++		interrupt-controller;
++		#interrupt-cells = <1>;
++		interrupt-parent = <&pio>;
++		interrupts = <38 IRQ_TYPE_LEVEL_HIGH>;
++	};
++};
++
++&switch {
++	ports {
++		#address-cells = <1>;
++		#size-cells = <0>;
++
++		port@0 {
++			reg = <0>;
++			label = "lan1";
++		};
++
++		port@1 {
++			reg = <1>;
++			label = "lan2";
++		};
++
++		port@2 {
++			reg = <2>;
++			label = "lan3";
++		};
++
++		wan: port@3 {
++			reg = <3>;
++			label = "wan";
++			nvmem-cells = <&macaddr_factory_4 (-2)>;
++			nvmem-cell-names = "mac-address";
++		};
++
++		port@6 {
++			reg = <6>;
++			ethernet = <&gmac0>;
++			phy-mode = "2500base-x";
++
++			fixed-link {
++				speed = <2500>;
++				full-duplex;
++				pause;
++			};
++		};
++	};
++};
++
++&spi0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&spi0_flash_pins>;
++	status = "okay";
++
++	spi_nand: flash@0 {
++		compatible = "spi-nand";
++		reg = <0>;
++		spi-max-frequency = <52000000>;
++
++		spi-cal-enable;
++		spi-cal-mode = "read-data";
++		spi-cal-datalen = <7>;
++		spi-cal-data = /bits/ 8 <0x53 0x50 0x49 0x4E 0x41 0x4E 0x44>;
++		spi-cal-addrlen = <5>;
++		spi-cal-addr = /bits/ 32 <0x0 0x0 0x0 0x0 0x0>;
++
++		spi-tx-bus-width = <4>;
++		spi-rx-bus-width = <4>;
++
++		partitions: partitions {
++			compatible = "fixed-partitions";
++			#address-cells = <1>;
++			#size-cells = <1>;
++
++			partition@0 {
++				label = "BL2";
++				reg = <0x00000 0x0100000>;
++				read-only;
++			};
++
++			partition@100000 {
++				label = "u-boot-env";
++				reg = <0x0100000 0x0080000>;
++			};
++
++			partition@180000 {
++				label = "Factory";
++				reg = <0x180000 0x0200000>;
++				read-only;
++
++				nvmem-layout {
++					compatible = "fixed-layout";
++					#address-cells = <1>;
++					#size-cells = <1>;
++
++					eeprom_factory_0: eeprom@0 {
++						reg = <0x0 0x1000>;
++					};
++
++					macaddr_factory_4: macaddr@4 {
++						compatible = "mac-base";
++						reg = <0x4 0x6>;
++						#nvmem-cell-cells = <1>;
++					};
++				};
++			};
++
++			partition@380000 {
++				label = "FIP";
++				reg = <0x380000 0x0200000>;
++				read-only;
++			};
++
++			ubi: partition@580000 {
++				label = "ubi";
++				compatible = "linux,ubi";
++				reg = <0x580000 0x3000000>;
++			};
++		};
++	};
++};
++
++&pio {
++	spi0_flash_pins: spi0-pins {
++		mux {
++			function = "spi";
++			groups = "spi0", "spi0_wp_hold";
++		};
++	};
++};
++
++&wifi {
++	nvmem-cells = <&eeprom_factory_0>;
++	nvmem-cell-names = "eeprom";
++	status = "okay";
++};
+diff --git a/target/linux/mediatek/dts/mt7981b-tenbay-wr3000k-ubootmod.dts b/target/linux/mediatek/dts/mt7981b-tenbay-wr3000k-ubootmod.dts
+new file mode 100644
+--- /dev/null
++++ b/target/linux/mediatek/dts/mt7981b-tenbay-wr3000k-ubootmod.dts
+@@ -0,0 +1,32 @@
++// SPDX-License-Identifier: (GPL-2.0 OR MIT)
++
++/dts-v1/;
++#include "mt7981b-tenbay-wr3000k-common.dtsi"
++
++/ {
++	model = "Tenbay WR3000K (OpenWrt U-Boot layout)";
++	compatible = "tenbay,wr3000k-ubootmod", "mediatek,mt7981";
++
++	chosen {
++		bootargs = "root=/dev/fit0 rootwait";
++		rootdisk = <&ubi_rootdisk>;
++	};
++};
++
++&partitions {
++	partition@100000 {
++		label = "u-boot-env (unused)";
++		reg = <0x100000 0x80000>;
++		read-only;
++	};
++};
++
++&ubi {
++	reg = <0x580000 0x7020000>;
++
++	volumes {
++		ubi_rootdisk: ubi-volume-fit {
++			volname = "fit";
++		};
++	};
++};
+--- a/package/boot/uboot-tools/uboot-envtools/files/mediatek_filogic
++++ b/package/boot/uboot-tools/uboot-envtools/files/mediatek_filogic
+@@ -129,6 +129,7 @@
+ routerich,ax3000|\
+ routerich,ax3000-v1|\
+ tenbay,wr3000k|\
++	tenbay,wr3000k-ubootmod|\
+ tplink,re6000xd|\
+ wavlink,wl-wn536ax6-a)
+ 	ubootenv_add_mtd "u-boot-env" "0x0" "0x20000" "0x20000" "1"
+--- a/target/linux/mediatek/filogic/base-files/etc/board.d/02_network
++++ b/target/linux/mediatek/filogic/base-files/etc/board.d/02_network
+@@ -75,6 +75,7 @@
+ 	routerich,ax3000-ubootmod|\
+ 	routerich,be7200|\
+ 	tenbay,wr3000k|\
++	tenbay,wr3000k-ubootmod|\
+ 	teralink,tl3020-256mb|\
+ 	tplink,tl-7dr7250-v1)
+ 		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3" wan
+--- a/target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh
++++ b/target/linux/mediatek/filogic/base-files/lib/upgrade/platform.sh
+@@ -159,6 +159,7 @@
+ 	routerich,ax3000-ubootmod|\
+ 	routerich,be7200|\
+ 	snr,snr-cpe-ax2|\
++	tenbay,wr3000k-ubootmod|\
+ 	teralink,tl3020-256mb|\
+ 	tplink,tl-7dr7230-v1|\
+ 	tplink,tl-7dr7230-v2|\
+@@ -403,6 +404,7 @@
+ 	qihoo,360t7|\
+ 	qihoo,360t7-ubi|\
+ 	routerich,ax3000-ubootmod|\
++	tenbay,wr3000k-ubootmod|\
+ 	teralink,tl3020-256mb|\
+ 	tplink,tl-7dr7230-v1|\
+ 	tplink,tl-7dr7230-v2|\
+--- a/target/linux/mediatek/image/filogic.mk
++++ b/target/linux/mediatek/image/filogic.mk
+@@ -3289,6 +3289,30 @@
+ 	fit lzma $$(KDIR)/image-$$(firstword $$(DEVICE_DTS)).dtb with-initrd
+ endef
+ TARGET_DEVICES += tenbay_wr3000k
++define Device/tenbay_wr3000k-ubootmod
++  DEVICE_VENDOR := Tenbay
++  DEVICE_MODEL := WR3000K
++  DEVICE_VARIANT := (OpenWrt U-Boot layout)
++  DEVICE_DTS := mt7981b-tenbay-wr3000k-ubootmod
++  DEVICE_DTS_DIR := ../dts
++  DEVICE_PACKAGES := kmod-mt7915e kmod-mt7981-firmware mt7981-wo-firmware
++  UBINIZE_OPTS := -E 5
++  BLOCKSIZE := 128k
++  PAGESIZE := 2048
++  KERNEL_IN_UBI := 1
++  UBOOTENV_IN_UBI := 1
++  IMAGES := sysupgrade.itb
++  KERNEL_INITRAMFS_SUFFIX := -recovery.itb
++  KERNEL := kernel-bin | libdeflate-gzip
++  KERNEL_INITRAMFS := kernel-bin | lzma | \
++	fit lzma $$(KDIR)/image-$$(firstword $$(DEVICE_DTS)).dtb with-initrd | pad-to 64k
++  IMAGE/sysupgrade.itb := append-kernel | \
++	fit gzip $$(KDIR)/image-$$(firstword $$(DEVICE_DTS)).dtb external-static-with-rootfs | append-metadata
++  ARTIFACTS := preloader.bin bl31-uboot.fip
++  ARTIFACT/preloader.bin := mt7981-bl2 spim-nand-ddr3-1866
++  ARTIFACT/bl31-uboot.fip := mt7981-bl31-uboot tenbay_wr3000k
++endef
++TARGET_DEVICES += tenbay_wr3000k-ubootmod
+ 
+ define Device/teralink_tl3020-256mb
+   DEVICE_VENDOR := Teralink
