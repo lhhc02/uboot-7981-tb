@@ -1,0 +1,82 @@
+name: Build WR3000K U-Boot only
+
+on:
+  # 手动触发：只编 U-Boot（BL2 preloader + BL31 FIP），不编固件，省时间
+  workflow_dispatch:
+
+env:
+  TZ: Asia/Shanghai
+
+jobs:
+  uboot:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Init environment
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install build-essential clang flex bison g++ gawk \
+            gcc-multilib g++-multilib gettext git libncurses5-dev libssl-dev \
+            python3 python3-pip python3-setuptools rsync unzip zlib1g-dev file wget
+          free -h
+
+      - name: Clone source
+        run: |
+          # uboot-mediatek 和 trusted-firmware-a 都在源码树内（package/boot），
+          # 不需要 feeds，不装，省时间
+          git clone --depth 1 https://github.com/immortalwrt/immortalwrt.git -b openwrt-25.12 openwrt
+
+      - name: Apply ubootmod patch (OpenWrt PR #24662)
+        run: |
+          cd openwrt
+          git apply --whitespace=nowarn ../pr24662-ubootmod-2512.patch \
+            || { echo "ERROR: ubootmod 补丁应用失败"; exit 1; }
+          grep -q "U-Boot/mt7981_tenbay_wr3000k" package/boot/uboot-mediatek/Makefile \
+            || { echo "ERROR: uboot 目标未生效"; exit 1; }
+          echo "--- uboot 目标确认存在 ---"
+
+      - name: Configure
+        run: |
+          cd openwrt
+          cat > .config <<'EOF'
+          CONFIG_TARGET_mediatek=y
+          CONFIG_TARGET_mediatek_filogic=y
+          CONFIG_TARGET_mediatek_filogic_DEVICE_tenbay_wr3000k-ubootmod=y
+          CONFIG_PACKAGE_uboot-mediatek-mt7981_tenbay_wr3000k=y
+          EOF
+          make defconfig
+          echo "--- 确认 uboot 与 TF-A 已入选 ---"
+          grep -E "uboot-mediatek|trusted-firmware-a" .config || { echo "ERROR: 配置未生效"; exit 1; }
+
+      - name: Build U-Boot
+        run: |
+          cd openwrt
+          # 编译会自动带上依赖：tools + aarch64 工具链 + arm-trusted-firmware-a
+          make package/boot/uboot-mediatek/compile -j2 V=s
+
+      - name: Install (生成 staging 镜像文件)
+        run: |
+          cd openwrt
+          make package/boot/uboot-mediatek/install -j2 V=s
+
+      - name: Collect artifacts
+        run: |
+          cd openwrt
+          mkdir -p ../out
+          # 宽匹配兜底：tenbay / preloader / .fip 全部捞出来
+          find staging_dir -type f \( -name "*tenbay*" -o -name "*preloader*" -o -name "*.fip" \) \
+            -exec cp -v {} ../out/ \; || true
+          echo "--- out 目录内容 ---"
+          ls -la ../out
+          # 关键文件校验：缺一个就报错，避免静默空产物
+          ls ../out | grep -qi "preloader" || { echo "ERROR: 没找到 preloader.bin"; exit 1; }
+          ls ../out | grep -qi ".fip" || { echo "ERROR: 没找到 u-boot.fip"; exit 1; }
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wr3000k-uboot-bl2-fip
+          path: out/*
+          if-no-files-found: error
