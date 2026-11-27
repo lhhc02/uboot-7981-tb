@@ -1,0 +1,42 @@
+#!/bin/sh
+# 首次开机自动执行（执行后本脚本会被自动移除）
+# 作用：主机名 / 设备型号 / WiFi SSID+密码 / 署名
+
+# 1. 主机名 + 时区
+uci set system.@system[0].hostname='SD-R3010'
+uci set system.@system[0].timezone='CST-8'
+uci set system.@system[0].zonename='Asia/Shanghai'
+uci commit system
+
+# 2. 设备型号：具体型号 + lhhc_02 build 261127 融合
+MODEL="SAIDA SD-R3010 lhhc_02 build 261127"
+sed -i "s/Tenbay WR3000K/${MODEL}/g" /etc/board.json
+mkdir -p /tmp/sysinfo
+echo "$MODEL" > /tmp/sysinfo/model
+
+# 3. WiFi：按 band 区分 2.4G / 5G，统一密码 Saida@001
+for iface in $(uci show wireless 2>/dev/null | grep '=wifi-iface' | cut -d= -f1 | cut -d. -f2); do
+    dev=$(uci -q get wireless.${iface}.device)
+    band=$(uci -q get wireless.${dev}.band)
+    case "$band" in
+        2g*)
+            uci set wireless.${iface}.ssid='SD-R3010-2.4G'
+            uci set wireless.${iface}.encryption='psk2'
+            uci set wireless.${iface}.key='Saida@001'
+            ;;
+        5g*)
+            uci set wireless.${iface}.ssid='SD-R3010-5G'
+            uci set wireless.${iface}.encryption='psk2'
+            uci set wireless.${iface}.key='Saida@001'
+            ;;
+    esac
+done
+uci commit wireless
+
+# 4. 署名 banner
+cat > /etc/banner <<'EOF'
+  SD-R3010
+  by lhhc_02 build 261127
+EOF
+
+exit 0
