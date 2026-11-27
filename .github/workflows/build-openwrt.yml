@@ -1,0 +1,151 @@
+name: Build WR3000K ImmortalWrt
+
+on:
+  # 只允许手动触发（Actions 页面点 Run workflow）。
+  # 故意移除 push 触发：改配置、改脚本、改说明文档时不会再自动烧一次编译。
+  workflow_dispatch:
+
+env:
+  REPO_URL: https://github.com/immortalwrt/immortalwrt
+  REPO_BRANCH: openwrt-25.12
+  CONFIG_FILE: .config
+  TZ: Asia/Shanghai
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Init environment
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install build-essential clang flex bison g++ gawk \
+            gcc-multilib g++-multilib gettext git libncurses5-dev libssl-dev \
+            python3 python3-pip python3-setuptools rsync unzip zlib1g-dev file wget
+          # 时区由顶层 env TZ=Asia/Shanghai 控制，不碰 timedatectl（容器无 D-Bus 会失败）；
+          # 容器内 swapon 无 CAP_SYS_ADMIN 不可用，故不建 swap，内存靠 make -j2 控制
+          free -h
+
+      - name: Clone source
+        run: |
+          git clone --depth 1 https://github.com/immortalwrt/immortalwrt.git -b openwrt-25.12 openwrt
+          cd openwrt
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Load config and files
+        run: |
+          cp .config openwrt/.config
+          if [ -d files ]; then
+            mkdir -p openwrt/files
+            cp -r files/. openwrt/files/
+          fi
+          echo "--- .config 种子已加载 ---"
+          cat openwrt/.config
+
+      - name: Apply ubootmod patch (OpenWrt PR #24662)
+        run: |
+          cd openwrt
+          # 该补丁为 tenbay_wr3000k 新增 OpenWrt U-Boot 引导变体（112M 单分区）：
+          #   - U-Boot 目标 mt7981_tenbay_wr3000k（BL2: spim-nand / DDR3-1866）
+          #   - 设备 tenbay_wr3000k-ubootmod（preloader.bin / bl31-uboot.fip / sysupgrade.itb）
+          #   - 附带 505 补丁：适配 Wooposit SGM7000I NAND（部分 WR3000K 用此颗粒，READ ID 返回全零）
+          # 已针对 immortalwrt openwrt-25.12 分支逐 hunk 校验过（来源：openwrt/openwrt PR #24662）
+          git apply --whitespace=nowarn ../pr24662-ubootmod-2512.patch \
+            || { echo "ERROR: ubootmod 补丁应用失败"; exit 1; }
+          grep -q "define Device/tenbay_wr3000k-ubootmod" target/linux/mediatek/image/filogic.mk \
+            || { echo "ERROR: ubootmod 设备定义未生效"; exit 1; }
+          [ -f package/boot/uboot-mediatek/patches/504-add-tenbay_wr3000k.patch ] \
+            || { echo "ERROR: 504 uboot 补丁缺失"; exit 1; }
+          echo "OK: ubootmod 补丁应用成功"
+
+      - name: Apply 96M partition patch
+        run: |
+          cd openwrt
+          DTS=target/linux/mediatek/dts/mt7981b-tenbay-wr3000k.dts
+          # 仅作用于原厂布局设备（tenbay_wr3000k），ubootmod 变体自带 112M 分区不受影响
+          # 删除 ubi1（双系统备份分区）
+          sed -i '/partition@3580000 {/,/};/d' "$DTS"
+          # ubi 从 48M 扩到 96M
+          sed -i 's/reg = <0x580000 0x3000000>/reg = <0x580000 0x6000000>/' "$DTS"
+          echo "--- 分区修改后校验 ---"
+          grep -n -A3 'label = "ubi"' "$DTS"
+          grep -c '0x6000000' "$DTS" | xargs -I{} echo "96M 标记出现次数: {}"
+          # IMAGE_SIZE 同步：48M -> 96M（filogic.mk 中全文件唯一，sed 安全）
+          sed -i 's/IMAGE_SIZE := 49152k/IMAGE_SIZE := 98304k/' target/linux/mediatek/image/filogic.mk
+          grep -q 'IMAGE_SIZE := 98304k' target/linux/mediatek/image/filogic.mk \
+            || { echo "ERROR: IMAGE_SIZE 修改失败"; exit 1; }
+          echo "OK: IMAGE_SIZE 已同步为 96M"
+
+      - name: Configure packages (force add + verify)
+        run: |
+          cd openwrt
+          make defconfig
+          # 用 echo 逐行追加，避免 heredoc 缩进污染
+          echo "CONFIG_PACKAGE_luci=y" >> .config
+          echo "CONFIG_PACKAGE_luci-i18n-base-zh-cn=y" >> .config
+          echo "CONFIG_PACKAGE_luci-theme-argon=y" >> .config
+          echo "CONFIG_PACKAGE_tailscale=y" >> .config
+          echo "CONFIG_PACKAGE_adguardhome=y" >> .config
+          echo "CONFIG_PACKAGE_luci-app-adguardhome=y" >> .config
+          echo "CONFIG_PACKAGE_openvpn-openssl=y" >> .config
+          echo "CONFIG_PACKAGE_luci-app-openvpn=y" >> .config
+          # ubootmod 变体（PR #24662 新增设备）
+          echo "CONFIG_TARGET_DEVICE_mediatek_filogic_DEVICE_tenbay_wr3000k=y" >> .config
+          echo "CONFIG_TARGET_DEVICE_mediatek_filogic_DEVICE_tenbay_wr3000k-ubootmod=y" >> .config
+          make defconfig
+          # 逐个校验，缺失即报错中断（杜绝静默丢包）
+          FAIL=0
+          for p in luci-theme-argon tailscale adguardhome luci-app-adguardhome openvpn-openssl luci-app-openvpn; do
+            if grep -q "CONFIG_PACKAGE_${p}=y" .config; then
+              echo "OK   : $p"
+            else
+              echo "ERROR: $p 未生效"
+              FAIL=1
+            fi
+          done
+          if grep -q "CONFIG_TARGET_mediatek_filogic_DEVICE_tenbay_wr3000k=y" .config; then
+            echo "OK   : target tenbay_wr3000k（原厂布局 96M）"
+          else
+            echo "ERROR: target 不正确"
+            FAIL=1
+          fi
+          if grep -q 'CONFIG_TARGET_DEVICE_mediatek_filogic_DEVICE_tenbay_wr3000k-ubootmod=y' .config; then
+            echo "OK   : device tenbay_wr3000k-ubootmod（OpenWrt U-Boot 112M）"
+          else
+            echo "ERROR: ubootmod 设备未生效"
+            FAIL=1
+          fi
+          [ "$FAIL" = "0" ] || exit 1
+          echo "=== 全部关键包与 target 已确认 ==="
+
+      - name: Download packages
+        run: |
+          cd openwrt
+          make download -j8
+
+      - name: Compile
+        run: |
+          cd openwrt
+          make -j2 V=s
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p firmware
+          BIN=openwrt/bin/targets/mediatek/filogic
+          ls -lh "$BIN"
+          # 原厂布局设备（96M）：sysupgrade.tar / factory.bin / initramfs
+          cp "$BIN"/*tenbay_wr3000k-squashfs-* firmware/ 2>/dev/null || true
+          # ubootmod 设备（112M）：sysupgrade.itb / recovery.itb / preloader.bin / bl31-uboot.fip
+          cp "$BIN"/*tenbay_wr3000k-ubootmod* firmware/ 2>/dev/null || true
+          echo "--- 产物清单 ---"
+          ls -lh firmware/
+
+      - name: Upload firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: wr3000k-firmware
+          path: firmware/
+          retention-days: 14
