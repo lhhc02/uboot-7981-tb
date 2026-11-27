@@ -44,11 +44,15 @@ jobs:
           CONFIG_TARGET_mediatek=y
           CONFIG_TARGET_mediatek_filogic=y
           CONFIG_TARGET_mediatek_filogic_DEVICE_tenbay_wr3000k-ubootmod=y
-          CONFIG_PACKAGE_uboot-mediatek-mt7981_tenbay_wr3000k=y
+          CONFIG_PACKAGE_u-boot-mt7981_tenbay_wr3000k=y
           EOF
           make defconfig
-          echo "--- 确认 uboot 与 TF-A 已入选 ---"
-          grep -E "uboot-mediatek|trusted-firmware-a" .config || { echo "ERROR: 配置未生效"; exit 1; }
+          echo "--- 确认 uboot 与 TF-A 已入选（必须精确匹配 =y）---"
+          grep -q "^CONFIG_PACKAGE_u-boot-mt7981_tenbay_wr3000k=y$" .config \
+            || { echo "ERROR: uboot 包未入选"; grep "u-boot-mt7981" .config; exit 1; }
+          grep -q "^CONFIG_PACKAGE_trusted-firmware-a-mt7981-spim-nand-ddr3-1866=y$" .config \
+            || { echo "ERROR: TF-A 依赖未入选"; grep "trusted-firmware-a" .config; exit 1; }
+          echo "OK: 配置正确"
 
       - name: Build U-Boot
         run: |
@@ -65,13 +69,15 @@ jobs:
         run: |
           cd openwrt
           mkdir -p ../out
-          # 宽匹配兜底：tenbay / preloader / .fip 全部捞出来
-          find staging_dir -type f \( -name "*tenbay*" -o -name "*preloader*" -o -name "*.fip" \) \
+          # 关键产物（Build/InstallDev 的 staging 命名规则）：
+          #   BL2:  staging_dir/.../mt7981-spim-nand-ddr3-1866-bl2.img （来自 TF-A 包）
+          #   FIP:  staging_dir/.../mt7981_tenbay_wr3000k-u-boot.fip  （来自 u-boot 包）
+          find staging_dir -type f \( -name "*tenbay*" -o -name "*.fip" -o -name "*bl2.img" -o -name "*preloader*" \) \
             -exec cp -v {} ../out/ \; || true
           echo "--- out 目录内容 ---"
           ls -la ../out
           # 关键文件校验：缺一个就报错，避免静默空产物
-          ls ../out | grep -qi "preloader" || { echo "ERROR: 没找到 preloader.bin"; exit 1; }
+          ls ../out | grep -qi "bl2.img" || { echo "ERROR: 没找到 BL2 (bl2.img)"; exit 1; }
           ls ../out | grep -qi ".fip" || { echo "ERROR: 没找到 u-boot.fip"; exit 1; }
 
       - name: Upload artifacts
